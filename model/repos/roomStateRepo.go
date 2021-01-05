@@ -16,12 +16,13 @@ package repos
 
 import (
 	"sync"
+	"time"
 
 	"github.com/finogeeks/ligase/common"
-	"github.com/finogeeks/ligase/skunkworks/gomatrixserverlib"
-	log "github.com/finogeeks/ligase/skunkworks/log"
 	"github.com/finogeeks/ligase/model/feedstypes"
 	"github.com/finogeeks/ligase/plugins/message/external"
+	"github.com/finogeeks/ligase/skunkworks/gomatrixserverlib"
+	log "github.com/finogeeks/ligase/skunkworks/log"
 	"github.com/finogeeks/ligase/storage/model"
 )
 
@@ -551,6 +552,8 @@ func (rs *RoomState) onUserMembershipChange(user string, visibility, preMembersh
 
 	log.Debugf("onUserMembershipChange user:%s visibility:%s, mem:%s", user, visibility, membership)
 
+	time.Sleep(500 * time.Millisecond)
+
 	if membership == "leave" || membership == "ban" { //离开标记下
 		if preMembership == "join" { //may invite->leave
 			if len(items) == 0 {
@@ -670,6 +673,8 @@ func (rs *RoomState) ArrangeVisibilityRange(user string) {
 	} else {
 		items = []*RangeItem{}
 	}
+
+	time.Sleep(1000 * time.Millisecond)
 
 	for i := 0; i < len(rs.visiableTl); i++ {
 		hsItem := rs.visiableTl[i]
