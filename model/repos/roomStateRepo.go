@@ -552,7 +552,19 @@ func (rs *RoomState) onUserMembershipChange(user string, visibility, preMembersh
 
 	log.Debugf("onUserMembershipChange user:%s visibility:%s, mem:%s", user, visibility, membership)
 
-	time.Sleep(500 * time.Millisecond)
+	log.Infow("+++++++++++++++++++++++++++++++++++++onUserMembershipChange, before sleep",
+		log.KeysAndValues{"user", user, "preMembership", preMembership, "membership", membership, "len(items)", len(items)})
+
+	for _, v := range items {
+		log.Infow("+++++++++++++++++++++++++++++++++onUserMembershipChange, items", log.KeysAndValues{"user", user, "membership", membership, "v", v})
+	}
+
+	if membership == "join" {
+		time.Sleep(500 * time.Millisecond)
+	}
+
+	log.Infow("+++++++++++++++++++++++++++++++++++++onUserMembershipChange, after sleep",
+		log.KeysAndValues{"user", user, "preMembership", preMembership, "membership", membership, "len(items)", len(items)})
 
 	if membership == "leave" || membership == "ban" { //离开标记下
 		if preMembership == "join" { //may invite->leave
@@ -610,6 +622,13 @@ func (rs *RoomState) onUserMembershipChange(user string, visibility, preMembersh
 
 		items = append(items, ri)
 		log.Debugf("onUserMembershipChange user:%s add view start:%d end:%d", user, ri.Start, ri.End)
+
+		log.Infow("+++++++++++++++++++++++++++++++++++++onUserMembershipChange, after calculate",
+			log.KeysAndValues{"user", user, "preMembership", preMembership, "membership", membership, "len(items)", len(items)})
+
+		for _, v := range items {
+			log.Infow("+++++++++++++++++++++++++++++++++onUserMembershipChange, items", log.KeysAndValues{"user", user, "membership", membership, "v", v})
+		}
 
 		rs.userMemberView.Store(user, items)
 	}
@@ -674,7 +693,12 @@ func (rs *RoomState) ArrangeVisibilityRange(user string) {
 		items = []*RangeItem{}
 	}
 
+	log.Infow("=====================================ArrageVisibilityRange, before sleep", log.KeysAndValues{"user", user, "len(items)", len(items)})
+	for _, v := range items {
+		log.Infow("=================================ArrangeVisibilityRange, items", log.KeysAndValues{"v", v})
+	}
 	time.Sleep(1000 * time.Millisecond)
+	log.Infow("=====================================ArrageVisibilityRange, after sleep", log.KeysAndValues{"user", user, "len(items)", len(items)})
 
 	for i := 0; i < len(rs.visiableTl); i++ {
 		hsItem := rs.visiableTl[i]
@@ -693,6 +717,12 @@ func (rs *RoomState) ArrangeVisibilityRange(user string) {
 			log.Debugf("onUserMembershipChange user:%s add view start:%d end:%d", user, hsItem.Start, hsItem.End)
 		}
 	}
+
+	log.Infow("=====================================ArrageVisibilityRange, after calculate", log.KeysAndValues{"user", user, "len(items)", len(items)})
+	for _, v := range items {
+		log.Infow("=================================ArrangeVisibilityRange, items", log.KeysAndValues{"user", user, "v", v})
+	}
+
 	rs.userMemberView.Store(user, items)
 }
 
