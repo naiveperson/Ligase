@@ -259,11 +259,6 @@ func startContentService(base *basecomponent.BaseDendrite, cmd *serverCmdPar) {
 	rpcCli := common.NewRpcClient(cfg.Nats.Uri, idg)
 	rpcCli.Start(true)
 
-	fedClient, err := client.GetFedClient(cfg.Matrix.ServerName[0])
-	if err != nil {
-		log.Panicf(err.Error())
-	}
-
 	cache := &cache.RedisCache{}
 	if err := cache.Prepare(cfg.Redis.Uris); err != nil {
 		log.Panicf("failed to connect to redis cache err:%v", err)
@@ -281,6 +276,12 @@ func startContentService(base *basecomponent.BaseDendrite, cmd *serverCmdPar) {
 
 	feddomains := common.NewFedDomains(settings)
 	settings.RegisterFederationDomainsUpdateCallback(feddomains.OnFedDomainsUpdate)
+
+	client.SetFedDomains(feddomains)
+	fedClient, err := client.GetFedClient(cfg.Matrix.ServerName[0])
+	if err != nil {
+		log.Panicf(err.Error())
+	}
 
 	cdb, err := common.GetDBInstance("content", cfg)
 	if err != nil {

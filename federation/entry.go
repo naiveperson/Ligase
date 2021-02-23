@@ -187,6 +187,7 @@ func startFedMonolith() {
 	feddomains := common.NewFedDomains(settings)
 	settings.RegisterFederationDomainsUpdateCallback(feddomains.OnFedDomainsUpdate)
 
+	client.SetFedDomains(feddomains)
 	fedClient, err := client.GetFedClient(cfg.GetServerName()[0])
 	if err != nil {
 		log.Panicf(err.Error())

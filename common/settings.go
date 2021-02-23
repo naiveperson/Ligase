@@ -19,8 +19,8 @@ import (
 	"sync"
 
 	"github.com/finogeeks/ligase/core"
-	"github.com/finogeeks/ligase/skunkworks/log"
 	"github.com/finogeeks/ligase/plugins/message/external"
+	"github.com/finogeeks/ligase/skunkworks/log"
 )
 
 type FedDomainInfo struct {
@@ -28,6 +28,7 @@ type FedDomainInfo struct {
 	Domain string `json:"domain"`
 	Host   string `json:"host"`
 	Port   int    `json:"port"`
+	Scheme string `json:"scheme"`
 }
 
 type SettingCache interface {

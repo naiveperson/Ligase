@@ -23,20 +23,27 @@ import (
 
 	"github.com/finogeeks/ligase/skunkworks/gomatrixserverlib"
 	"github.com/finogeeks/ligase/skunkworks/log"
+	"github.com/finogeeks/ligase/common"
 )
 
 var (
 	FedClients sync.Map
 	loading    sync.Map
 	Certs      *sync.Map
+	FedDomains *common.FedDomains
 )
 
 type FedClientWrap struct {
+	clients sync.Map
 	Client *gomatrixserverlib.FederationClient
 }
 
 func SetCerts(c *sync.Map) {
 	Certs = c
+}
+
+func SetFedDomains(d *common.FedDomains) {
+	FedDomains = d
 }
 
 func NewFedClient(serverName string) *FedClientWrap {
@@ -68,9 +75,24 @@ func NewFedClient(serverName string) *FedClientWrap {
 		log.Warnf("cert is revoked or expired")
 	}
 
-	fed.Client = gomatrixserverlib.NewFederationClient(
-		gomatrixserverlib.ServerName(serverName), "", nil, rootCA.(string), certPem.(string), keyPem.(string),
-	)
+	domainInfos := FedDomains.GetAllDomainInfos()
+	for _, v := range domainInfos {
+		destination, ok := FedDomains.GetDomainHost(v.Domain)
+		if !ok {
+			log.Warnf("Destination not found for domain: %s\n", v.Domain)
+		}
+
+		client := new(gomatrixserverlib.FederationClient)
+		if v.Scheme == "http" {
+			client = gomatrixserverlib.NewFederationClient(gomatrixserverlib.ServerName(v.Domain), "", nil, "", "", "")
+		} else {
+			client = gomatrixserverlib.NewFederationClient(
+				gomatrixserverlib.ServerName(v.Domain), "", nil, rootCA.(string), certPem.(string), keyPem.(string))
+		}
+
+		fed.clients.Store(destination, client)
+	}
+
 	return fed
 }
 
@@ -126,13 +148,27 @@ func checkCert() (bool, error) {
 	return !revoked.(bool), errors.New(msg)
 }
 
+func (fed *FedClientWrap) GetFedClientByDestination(des string) (*gomatrixserverlib.FederationClient, error) {
+	if client, ok := fed.clients.Load(des); ok {
+		return client.(*gomatrixserverlib.FederationClient), nil
+	}
+
+	return nil, errors.New("Fed client not found")
+}
+
 func (fed *FedClientWrap) LookupRoomAlias(
 	ctx context.Context, destination, alias string,
 ) (res gomatrixserverlib.RespDirectory, err error) {
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespDirectory{}, err
 	}
-	return fed.Client.LookupRoomAlias(ctx, gomatrixserverlib.ServerName(destination), alias)
+
+	client, err := fed.GetFedClientByDestination(destination)
+	if err != nil {
+		return gomatrixserverlib.RespDirectory{}, err
+	}
+
+	return client.LookupRoomAlias(ctx, gomatrixserverlib.ServerName(destination), alias)
 }
 
 func (fed *FedClientWrap) LookupProfile(
@@ -141,7 +177,13 @@ func (fed *FedClientWrap) LookupProfile(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespProfile{}, err
 	}
-	return fed.Client.LookupProfile(ctx, gomatrixserverlib.ServerName(destination), userID)
+
+	client, err := fed.GetFedClientByDestination(destination)
+	if err != nil {
+		return gomatrixserverlib.RespProfile{}, err
+	}
+
+	return client.LookupProfile(ctx, gomatrixserverlib.ServerName(destination), userID)
 }
 
 func (fed *FedClientWrap) LookupAvatarURL(
@@ -150,7 +192,13 @@ func (fed *FedClientWrap) LookupAvatarURL(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespAvatarURL{}, err
 	}
-	return fed.Client.LookupAvatarURL(ctx, gomatrixserverlib.ServerName(destination), userID)
+
+	client, err := fed.GetFedClientByDestination(destination)
+	if err != nil {
+		return gomatrixserverlib.RespAvatarURL{}, err
+	}
+
+	return client.LookupAvatarURL(ctx, gomatrixserverlib.ServerName(destination), userID)
 }
 
 func (fed *FedClientWrap) LookupDisplayName(
@@ -159,7 +207,13 @@ func (fed *FedClientWrap) LookupDisplayName(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespDisplayname{}, err
 	}
-	return fed.Client.LookupDisplayname(ctx, gomatrixserverlib.ServerName(destination), userID)
+
+	client, err := fed.GetFedClientByDestination(destination)
+	if err != nil {
+		return gomatrixserverlib.RespDisplayname{}, err
+	}
+
+	return client.LookupDisplayname(ctx, gomatrixserverlib.ServerName(destination), userID)
 }
 
 func (fed *FedClientWrap) LookupState(
@@ -168,7 +222,13 @@ func (fed *FedClientWrap) LookupState(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespState{}, err
 	}
-	return fed.Client.LookupState(ctx, gomatrixserverlib.ServerName(destination), roomID, eventID)
+
+	client, err := fed.GetFedClientByDestination(destination)
+	if err != nil {
+		return gomatrixserverlib.RespState{}, err
+	}
+
+	return client.LookupState(ctx, gomatrixserverlib.ServerName(destination), roomID, eventID)
 }
 
 func (fed *FedClientWrap) Download(
@@ -177,7 +237,13 @@ func (fed *FedClientWrap) Download(
 	if ok, err := checkCert(); !ok {
 		return err
 	}
-	return fed.Client.Download(ctx, gomatrixserverlib.ServerName(destination), domain, mediaID, width, method, fileType, cb)
+
+	client, err := fed.GetFedClientByDestination(destination)
+	if err != nil {
+		return err
+	}
+
+	return client.Download(ctx, gomatrixserverlib.ServerName(destination), domain, mediaID, width, method, fileType, cb)
 }
 
 func (fed *FedClientWrap) LookupMediaInfo(
@@ -186,7 +252,13 @@ func (fed *FedClientWrap) LookupMediaInfo(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespMediaInfo{}, err
 	}
-	return fed.Client.LookupMediaInfo(ctx, gomatrixserverlib.ServerName(destination), mediaID, userID)
+
+	client, err := fed.GetFedClientByDestination(destination)
+	if err != nil {
+		return gomatrixserverlib.RespMediaInfo{}, err
+	}
+
+	return client.LookupMediaInfo(ctx, gomatrixserverlib.ServerName(destination), mediaID, userID)
 }
 
 func (fed *FedClientWrap) Backfill(
@@ -196,7 +268,13 @@ func (fed *FedClientWrap) Backfill(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.BackfillResponse{}, err
 	}
-	return fed.Client.Backfill(ctx, s, domain, roomID, limit, eventIDs, dir)
+
+	client, err := fed.GetFedClientByDestination(string(s))
+	if err != nil {
+		return gomatrixserverlib.BackfillResponse{}, err
+	}
+
+	return client.Backfill(ctx, s, domain, roomID, limit, eventIDs, dir)
 }
 
 func (fed *FedClientWrap) SendTransaction(
@@ -205,7 +283,13 @@ func (fed *FedClientWrap) SendTransaction(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespSend{}, err
 	}
-	return fed.Client.SendTransaction(ctx, t)
+
+	client, err := fed.GetFedClientByDestination(string(t.Destination))
+	if err != nil {
+		return gomatrixserverlib.RespSend{}, err
+	}
+
+	return client.SendTransaction(ctx, t)
 }
 
 func (fed *FedClientWrap) LookupUserInfo(
@@ -214,7 +298,13 @@ func (fed *FedClientWrap) LookupUserInfo(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespUserInfo{}, err
 	}
-	return fed.Client.LookupUserInfo(ctx, gomatrixserverlib.ServerName(destination), userID)
+
+	client, err := fed.GetFedClientByDestination(destination)
+	if err != nil {
+		return gomatrixserverlib.RespUserInfo{}, err
+	}
+
+	return client.LookupUserInfo(ctx, gomatrixserverlib.ServerName(destination), userID)
 }
 
 func (fed *FedClientWrap) MakeJoin(
@@ -223,7 +313,13 @@ func (fed *FedClientWrap) MakeJoin(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespMakeJoin{}, err
 	}
-	return fed.Client.MakeJoin(ctx, s, roomID, userID, ver)
+
+	client, err := fed.GetFedClientByDestination(string(s))
+	if err != nil {
+		return gomatrixserverlib.RespMakeJoin{}, err
+	}
+
+	return client.MakeJoin(ctx, s, roomID, userID, ver)
 }
 
 func (fed *FedClientWrap) SendJoin(
@@ -232,7 +328,13 @@ func (fed *FedClientWrap) SendJoin(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespSendJoin{}, err
 	}
-	return fed.Client.SendJoin(ctx, s, roomID, eventID, event)
+
+	client, err := fed.GetFedClientByDestination(string(s))
+	if err != nil {
+		return gomatrixserverlib.RespSendJoin{}, err
+	}
+
+	return client.SendJoin(ctx, s, roomID, eventID, event)
 }
 
 func (fed *FedClientWrap) SendInvite(
@@ -241,7 +343,13 @@ func (fed *FedClientWrap) SendInvite(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespInvite{}, err
 	}
-	return fed.Client.SendInvite(ctx, gomatrixserverlib.ServerName(destination), event)
+
+	client, err := fed.GetFedClientByDestination(destination)
+	if err != nil {
+		return gomatrixserverlib.RespInvite{}, err
+	}
+
+	return client.SendInvite(ctx, gomatrixserverlib.ServerName(destination), event)
 }
 
 func (fed *FedClientWrap) MakeLeave(
@@ -250,7 +358,13 @@ func (fed *FedClientWrap) MakeLeave(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespMakeLeave{}, err
 	}
-	return fed.Client.MakeLeave(ctx, s, roomID, userID)
+
+	client, err := fed.GetFedClientByDestination(string(s))
+	if err != nil {
+		return gomatrixserverlib.RespMakeLeave{}, err
+	}
+
+	return client.MakeLeave(ctx, s, roomID, userID)
 }
 
 func (fed *FedClientWrap) SendLeave(
@@ -259,5 +373,11 @@ func (fed *FedClientWrap) SendLeave(
 	if ok, err := checkCert(); !ok {
 		return gomatrixserverlib.RespSendLeave{}, err
 	}
-	return fed.Client.SendLeave(ctx, s, roomID, eventID, event)
+
+	client, err := fed.GetFedClientByDestination(string(s))
+	if err != nil {
+		return gomatrixserverlib.RespSendLeave{}, err
+	}
+
+	return client.SendLeave(ctx, s, roomID, eventID, event)
 }
