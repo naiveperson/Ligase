@@ -22,12 +22,12 @@ import (
 	"github.com/finogeeks/ligase/federation/client"
 	"github.com/finogeeks/ligase/federation/fedutil"
 	fedmodel "github.com/finogeeks/ligase/federation/storage/model"
-	"github.com/finogeeks/ligase/skunkworks/log"
 	"github.com/finogeeks/ligase/model"
 	"github.com/finogeeks/ligase/model/noticetypes"
 	"github.com/finogeeks/ligase/model/service"
 	"github.com/finogeeks/ligase/model/service/roomserverapi"
 	"github.com/finogeeks/ligase/plugins/message/external"
+	"github.com/finogeeks/ligase/skunkworks/log"
 	dbmodel "github.com/finogeeks/ligase/storage/model"
 	"github.com/pkg/errors"
 )
@@ -60,8 +60,6 @@ func noticeHandler(action, targetDomain string, keyDB dbmodel.KeyDatabase) (err 
 	if action == "add" {
 		reqUrl = fmt.Sprintf(cfg.NotaryService.CertUrl, cfg.Homeserver.ServerName[0])
 		_, err = fedutil.DownloadFromNotary("cert", reqUrl, keyDB)
-		// Renew fed clients if new node added.
-		client.ReNewFedClient(cfg.Homeserver.ServerName[0])
 	} else if action == "update" || action == "delete" {
 		// update crl
 		reqUrl = cfg.NotaryService.CRLUrl

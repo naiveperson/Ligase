@@ -275,9 +275,9 @@ func startContentService(base *basecomponent.BaseDendrite, cmd *serverCmdPar) {
 	}
 
 	feddomains := common.NewFedDomains(settings)
-	settings.RegisterFederationDomainsUpdateCallback(feddomains.OnFedDomainsUpdate)
+	settings.RegisterFederationDomainsUpdateCallback(client.OnFedDomainsUpdate)
 
-	client.SetFedDomains(feddomains)
+	client.SetFedDomains(cfg.Matrix.ServerName[0], feddomains)
 	fedClient, err := client.GetFedClient(cfg.Matrix.ServerName[0])
 	if err != nil {
 		log.Panicf(err.Error())

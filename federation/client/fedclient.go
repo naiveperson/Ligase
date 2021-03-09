@@ -21,29 +21,36 @@ import (
 	"sync"
 	"time"
 
+	"github.com/finogeeks/ligase/common"
 	"github.com/finogeeks/ligase/skunkworks/gomatrixserverlib"
 	"github.com/finogeeks/ligase/skunkworks/log"
-	"github.com/finogeeks/ligase/common"
 )
 
 var (
-	FedClients sync.Map
-	loading    sync.Map
-	Certs      *sync.Map
-	FedDomains *common.FedDomains
+	FedClients  sync.Map
+	loading     sync.Map
+	Certs       *sync.Map
+	FedDomains  *common.FedDomains
+	localDomain string
 )
 
 type FedClientWrap struct {
 	clients sync.Map
-	Client *gomatrixserverlib.FederationClient
+	Client  *gomatrixserverlib.FederationClient
 }
 
 func SetCerts(c *sync.Map) {
 	Certs = c
 }
 
-func SetFedDomains(d *common.FedDomains) {
+func SetFedDomains(ld string, d *common.FedDomains) {
+	localDomain = ld
 	FedDomains = d
+}
+
+func OnFedDomainsUpdate(domains []common.FedDomainInfo) {
+	FedDomains.OnFedDomainsUpdate(domains)
+	ReNewFedClient(localDomain)
 }
 
 func NewFedClient(serverName string) *FedClientWrap {

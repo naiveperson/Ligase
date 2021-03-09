@@ -23,7 +23,6 @@ import (
 	"strconv"
 	"syscall"
 
-	mon "github.com/finogeeks/ligase/skunkworks/monitor/go-client/monitor"
 	"github.com/finogeeks/ligase/adapter"
 	"github.com/finogeeks/ligase/cache"
 	"github.com/finogeeks/ligase/common"
@@ -45,6 +44,7 @@ import (
 	"github.com/finogeeks/ligase/model/repos"
 	_ "github.com/finogeeks/ligase/plugins"
 	"github.com/finogeeks/ligase/skunkworks/log"
+	mon "github.com/finogeeks/ligase/skunkworks/monitor/go-client/monitor"
 	_ "github.com/finogeeks/ligase/storage/implements"
 	"github.com/finogeeks/ligase/storage/model"
 )
@@ -185,9 +185,9 @@ func startFedMonolith() {
 	}
 
 	feddomains := common.NewFedDomains(settings)
-	settings.RegisterFederationDomainsUpdateCallback(feddomains.OnFedDomainsUpdate)
+	settings.RegisterFederationDomainsUpdateCallback(client.OnFedDomainsUpdate)
 
-	client.SetFedDomains(feddomains)
+	client.SetFedDomains(cfg.GetServerName()[0], feddomains)
 	fedClient, err := client.GetFedClient(cfg.GetServerName()[0])
 	if err != nil {
 		log.Panicf(err.Error())
