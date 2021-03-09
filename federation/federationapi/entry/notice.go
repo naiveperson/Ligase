@@ -60,6 +60,8 @@ func noticeHandler(action, targetDomain string, keyDB dbmodel.KeyDatabase) (err 
 	if action == "add" {
 		reqUrl = fmt.Sprintf(cfg.NotaryService.CertUrl, cfg.Homeserver.ServerName[0])
 		_, err = fedutil.DownloadFromNotary("cert", reqUrl, keyDB)
+		// Renew fed clients if new node added.
+		client.ReNewFedClient(cfg.Homeserver.ServerName[0])
 	} else if action == "update" || action == "delete" {
 		// update crl
 		reqUrl = cfg.NotaryService.CRLUrl
