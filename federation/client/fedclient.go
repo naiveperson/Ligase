@@ -82,6 +82,7 @@ func NewFedClient(serverName string) *FedClientWrap {
 			log.Warnf("Destination not found for domain: %s\n", v.Domain)
 		}
 
+		log.Infow("=================================", log.KeysAndValues{"v.Domain", v.Domain, "destination", destination, "v.Scheme", v.Scheme})
 		client := new(gomatrixserverlib.FederationClient)
 		if v.Scheme == "http" {
 			client = gomatrixserverlib.NewFederationClient(gomatrixserverlib.ServerName(v.Domain), "", nil, "", "", "")
@@ -289,6 +290,7 @@ func (fed *FedClientWrap) SendTransaction(
 		return gomatrixserverlib.RespSend{}, err
 	}
 
+	log.Infow("=================================", log.KeysAndValues{"client", client})
 	return client.SendTransaction(ctx, t)
 }
 
