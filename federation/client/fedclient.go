@@ -53,9 +53,7 @@ func OnFedDomainsUpdate(domains []common.FedDomainInfo) {
 	ReNewFedClient(localDomain)
 }
 
-func NewFedClient(serverName string) *FedClientWrap {
-	fed := &FedClientWrap{}
-
+func InitFedClient(serverName string, fed *FedClientWrap) error {
 	enable, _ := Certs.Load("httpsCliEnable")
 	rootCA, _ := Certs.Load("rootCA")
 	keyPem, _ := Certs.Load("serverKey")
@@ -101,13 +99,13 @@ func NewFedClient(serverName string) *FedClientWrap {
 		fed.clients.Store(destination, client)
 	}
 
-	return fed
+	return nil
 }
 
 func ReNewFedClient(serverName string) {
 	// FedClients.Delete(serverName)
 
-	_, err := blockReNew(serverName, time.Millisecond*5000)
+	err := blockReNew(serverName, time.Millisecond*5000)
 	log.Infof("---------------------- renew fed client of %s, err: %v", serverName, err)
 }
 
@@ -117,28 +115,45 @@ func GetFedClient(serverName string) (*FedClientWrap, error) {
 		return val.(*FedClientWrap), nil
 	}
 
-	fedClient, err := blockReNew(serverName, time.Millisecond*3000)
-	log.Infof("---------------------- get fed client of %s, err: %v", serverName, err)
-	return fedClient, err
+	err := blockReNew(serverName, time.Millisecond*3000)
+	if err != nil {
+		log.Errorf("---------------------- get fed client of %s, err: %v", serverName, err)
+		return nil, err
+	}
+
+	val, ok = FedClients.Load(serverName)
+	if !ok {
+		log.Errorf("---------------------- Failed to get fed clients for server ", serverName)
+		return nil, err
+	}
+
+	return val.(*FedClientWrap), nil
 }
 
-func blockReNew(serverName string, timeout time.Duration) (*FedClientWrap, error) {
+func blockReNew(serverName string, timeout time.Duration) error {
 	start := time.Now()
 	for {
 		if _, ok := loading.Load(serverName); !ok {
 			loading.Store(serverName, true)
-			fedCli := NewFedClient(serverName)
-			FedClients.Store(serverName, fedCli)
-			loading.Delete(serverName)
+			val, ok := FedClients.Load(serverName)
+			var err error
+			if ok {
+				err = InitFedClient(serverName, val.(*FedClientWrap))
+			} else {
+				fedClient := new(FedClientWrap)
+				err = InitFedClient(serverName, fedClient)
+				FedClients.Store(serverName, fedClient)
+			}
 
-			return fedCli, nil
+			loading.Delete(serverName)
+			return err
 		} else {
 			time.Sleep(time.Millisecond * 50)
 		}
 
 		elapsed := time.Since(start)
 		if elapsed >= timeout {
-			return nil, errors.New("wating for new fed client timeout")
+			return errors.New("wating for new fed client timeout")
 		}
 	}
 }
