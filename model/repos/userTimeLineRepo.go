@@ -25,6 +25,7 @@ import (
 
 	"github.com/finogeeks/ligase/adapter"
 	"github.com/finogeeks/ligase/common/uid"
+	"github.com/finogeeks/ligase/common/utils"
 	"github.com/finogeeks/ligase/model/service"
 	"github.com/finogeeks/ligase/model/types"
 	"github.com/finogeeks/ligase/plugins/message/external"
@@ -232,6 +233,7 @@ func (tl *UserTimeLineRepo) LoadUserFriendShip(userID string) {
 		})
 		if len(joined) > 0 {
 			bs := time.Now().UnixNano() / 1000000
+			utils.SleepRandomSecondsToMockPG()
 			friends, err := tl.persist.GetFriendShip(context.TODO(), joined)
 			spend := time.Now().UnixNano()/1000000 - bs
 			if err != nil {
@@ -286,6 +288,7 @@ func (tl *UserTimeLineRepo) loadRoomLatest(user string, rooms []string) {
 
 func (tl *UserTimeLineRepo) loadRoomLatestByPage(batchId, user string, rooms []string) error {
 	bs := time.Now().UnixNano() / 1000000
+	utils.SleepRandomSecondsToMockPG()
 	roomMap, err := tl.persist.GetRoomLastOffsets(context.TODO(), rooms)
 	spend := time.Now().UnixNano()/1000000 - bs
 	if err != nil {
@@ -334,6 +337,7 @@ func (tl *UserTimeLineRepo) loadJoinRoomOffsets(user string, events []string, re
 
 func (tl *UserTimeLineRepo) loadJoinRoomOffsetsByPage(batchId, user string, events []string, res *sync.Map) error {
 	bs := time.Now().UnixNano() / 1000000
+	utils.SleepRandomSecondsToMockPG()
 	offsets, _, roomIDs, err := tl.persist.GetJoinRoomOffsets(context.TODO(), events)
 	spend := time.Now().UnixNano()/1000000 - bs
 	if err != nil {
@@ -355,6 +359,7 @@ func (tl *UserTimeLineRepo) GetJoinRooms(user string) (*sync.Map, error) {
 	res := new(sync.Map)
 	if _, ok := tl.joinReady.Load(user); !ok {
 		bs := time.Now().UnixNano() / 1000000
+		utils.SleepRandomSecondsToMockPG()
 		rooms, _, events, err := tl.persist.GetRidsForUser(context.TODO(), user)
 		spend := time.Now().UnixNano()/1000000 - bs
 		if err != nil {
@@ -434,6 +439,7 @@ func (tl *UserTimeLineRepo) GetInviteRooms(user string) (*sync.Map, error) {
 
 	if _, ok := tl.inviteReady.Load(user); !ok {
 		bs := time.Now().UnixNano() / 1000000
+		utils.SleepRandomSecondsToMockPG()
 		rooms, offsets, _, err := tl.persist.GetInviteRidsForUser(context.TODO(), user)
 		spend := time.Now().UnixNano()/1000000 - bs
 		if err != nil {
@@ -469,6 +475,7 @@ func (tl *UserTimeLineRepo) GetLeaveRooms(user string) (*sync.Map, error) {
 
 	if _, ok := tl.leaveReady.Load(user); !ok {
 		bs := time.Now().UnixNano() / 1000000
+		utils.SleepRandomSecondsToMockPG()
 		rooms, _, _, err := tl.persist.GetLeaveRidsForUser(context.TODO(), user)
 		spend := time.Now().UnixNano()/1000000 - bs
 		if err != nil {
@@ -509,6 +516,7 @@ func (tl *UserTimeLineRepo) LoadHistory(user string, isHuman bool) {
 		if isHuman {
 			if _, ok := tl.receiptLatest.Load(user); !ok {
 				bs := time.Now().UnixNano() / 1000000
+				utils.SleepRandomSecondsToMockPG()
 				maxPos, err := tl.persist.GetUserMaxReceiptOffset(context.TODO(), user)
 				spend := time.Now().UnixNano()/1000000 - bs
 				if err != nil {

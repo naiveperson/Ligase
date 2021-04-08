@@ -28,6 +28,7 @@ import (
 	"github.com/finogeeks/ligase/skunkworks/gomatrixserverlib"
 	"github.com/finogeeks/ligase/skunkworks/log"
 	"github.com/finogeeks/ligase/storage/model"
+	"github.com/finogeeks/ligase/common/utils"
 )
 
 type RoomHistoryTimeLineRepo struct {
@@ -90,6 +91,7 @@ func (tl *RoomHistoryTimeLineRepo) loadHistory(roomID string) {
 	defer tl.loading.Delete(roomID)
 
 	bs := time.Now().UnixNano() / 1000000
+	utils.SleepRandomSecondsToMockPG()
 	evs, offsets, err := tl.persist.GetHistoryEvents(context.TODO(), roomID, 50) //注意是倒序的event，需要排列下
 	spend := time.Now().UnixNano()/1000000 - bs
 	if err != nil {
@@ -259,6 +261,7 @@ func (tl *RoomHistoryTimeLineRepo) GetRoomMinStream(roomID string) int64 {
 		return val.(int64)
 	}
 	bs := time.Now().UnixNano() / 1000000
+	utils.SleepRandomSecondsToMockPG()
 	pos, err := tl.persist.SelectOutputMinStream(context.TODO(), roomID)
 	spend := time.Now().UnixNano()/1000000 - bs
 	if err != nil {
@@ -290,6 +293,7 @@ func (tl *RoomHistoryTimeLineRepo) GetDomainMaxStream(roomID, domain string) int
 				continue
 			} else {
 				defer tl.loadingDomainMaxOffset.Delete(roomID)
+				utils.SleepRandomSecondsToMockPG()
 				domains, offsets, err := tl.persist.SelectDomainMaxOffset(context.TODO(), roomID)
 				if err != nil {
 					log.Errorf("RoomHistoryTimeLineRepo GetDomainMaxStream roomID %s err %v", roomID, err)
@@ -362,6 +366,7 @@ func (tl *RoomHistoryTimeLineRepo) LoadRoomLatest(rooms []syncapitypes.SyncRoom)
 
 	if len(loadRooms) > 0 {
 		bs := time.Now().UnixNano() / 1000000
+		utils.SleepRandomSecondsToMockPG()
 		roomMap, err := tl.persist.GetRoomLastOffsets(context.TODO(), loadRooms)
 		spend := time.Now().UnixNano()/1000000 - bs
 		if err != nil {

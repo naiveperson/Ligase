@@ -25,6 +25,7 @@ import (
 	"math/rand"
 	"os"
 	"strings"
+	"time"
 )
 
 func DomainFromID(id string) (string, error) {
@@ -86,4 +87,9 @@ func DoUnCompress(compressSrc []byte) []byte {
 
 func GetRandomSleepSecondsForDebug() float64 {
 	return math.Max(0, 11-math.Pow(float64(rand.Intn(200)), 1/1.5))
+}
+
+func SleepRandomSecondsToMockPG() {
+	sec := rand.New(rand.NewSource(time.Now().UnixNano())).Intn(5)
+	time.Sleep(time.Duration(sec) * time.Second)
 }

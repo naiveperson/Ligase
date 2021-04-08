@@ -21,6 +21,7 @@ import (
 	"time"
 
 	"github.com/finogeeks/ligase/common"
+	"github.com/finogeeks/ligase/common/utils"
 	"github.com/finogeeks/ligase/skunkworks/gomatrixserverlib"
 	"github.com/finogeeks/ligase/skunkworks/log"
 	"github.com/finogeeks/ligase/model/feedstypes"
@@ -164,6 +165,7 @@ func (tl *RoomStateTimeLineRepo) loadStates(roomID string) {
 	defer tl.stateLoading.Delete(roomID)
 
 	bs := time.Now().UnixNano() / 1000000
+	utils.SleepRandomSecondsToMockPG()
 	evs, offsets, err := tl.persist.GetStateEventsForRoom(context.TODO(), roomID)
 	spend := time.Now().UnixNano()/1000000 - bs
 	if err != nil {
@@ -186,6 +188,7 @@ func (tl *RoomStateTimeLineRepo) loadStateStreams(roomID string) {
 	defer tl.streamLoading.Delete(roomID)
 
 	bs := time.Now().UnixNano() / 1000000
+	utils.SleepRandomSecondsToMockPG()
 	evs, offsets, err := tl.persist.GetStateEventsStreamForRoom(context.TODO(), roomID)
 	spend := time.Now().UnixNano()/1000000 - bs
 	if err != nil {
@@ -359,6 +362,7 @@ func (tl *RoomStateTimeLineRepo) GetStateEvents(roomID string, endPos int64) ([]
 
 	if len(streamEvs) <= 0 {
 		// get from db
+		utils.SleepRandomSecondsToMockPG()
 		evs, offsets, err := tl.persist.GetStateEventsStreamForRoomBeforePos(context.TODO(), roomID, endPos)
 		if err != nil {
 			log.Errorf("RoomStateTimeLineRepo load room %s state err: %v", roomID, err)
